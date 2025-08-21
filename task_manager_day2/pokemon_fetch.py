@@ -23,4 +23,14 @@ with open("pokemon_names.txt", "w") as file:
     for item in pokeList:
         file.write(f"{item}\n")
 
-print(pokeList)
+
+# Strect goal: fetch 20 Pokémon but only save the ones starting with "b"
+
+pokeListExtended = []
+
+for i in range(1, 21):
+    response = requests.get(f"https://pokeapi.co/api/v2/pokemon/{i}")
+    parsedResponse = response.json()
+    if (parsedResponse["forms"][0]["name"].startswith("b")):
+        pokeListExtended.append(parsedResponse["forms"][0]["name"])
+print(pokeListExtended)
