@@ -10,12 +10,13 @@ tasks = [
 @app.route("/tasks", methods=["GET"])
 def get_tasks():
     return jsonify(tasks)
-
+#visitng path /tasks/<id> returns specifc task 
 @app.route("/tasks/<int:id>", methods=["GET"])
 def get_task_id(id):
     for task in tasks:
         if task["id"] == id:
             return jsonify(task)
+    return jsonify({"error": "Task not found"}), 404
 
             
 
