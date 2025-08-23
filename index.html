@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hello!</title>
+    <meta name="description" content="description"/>
+    <meta name="author" content="author" />
+    <meta name="keywords" content="keywords" />
+    <link rel="stylesheet" href="./stylesheet.css" type="text/css" />
+    <style type="text/css">.body { width: auto; }</style>
+  </head>
+  <body>
+    <h1>Page title</h1>
+    <div class="main">
+        
+    </div>
+  <script>  
+  document.addEventListener("DOMContentLoaded", () => {
+
+    async function getTasks(api) {
+        const url = "http://127.0.0.1:5000/tasks"
+        try {
+            const response = await fetch(url)
+            if (!response.ok) {
+                console.warn("error")
+            }
+            const result = await response.json()
+            const htmlBody = document.querySelector(".main");
+             
+            const ul = document.createElement("ul")
+            htmlBody.appendChild(ul);
+
+            result.forEach(task => {
+                
+                const li = document.createElement("li")
+                li.textContent = task.title;;
+                ul.appendChild(li)
+            })
+            
+        } catch(e) {
+            console.log(e)
+        }
+    }
+    getTasks()
+
+});
+
+  </script>
+  </body>
+</html>

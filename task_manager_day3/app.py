@@ -1,6 +1,8 @@
 from flask import Flask, jsonify, request
-app = Flask(__name__)
 
+app = Flask(__name__)
+from flask_cors import CORS
+CORS(app)
 tasks = [
     {"id": 1, "title": "Buy milk", "done": False},
     {"id": 2, "title": "Clean desk", "done": False},
@@ -10,6 +12,7 @@ tasks = [
 @app.route("/tasks", methods=["GET"])
 def get_tasks():
     return jsonify(tasks)
+
 #visitng path /tasks/<id> returns specifc task 
 @app.route("/tasks/<int:id>", methods=["GET"])
 def get_task_id(id):
@@ -50,9 +53,7 @@ def create_task():
         "done": False
     }
     tasks.append(new_task)
-    return jsonify(new_task), 201
-
-
+    return jsonify(new_task), 201 #201 == http status code
 
 
 '''
