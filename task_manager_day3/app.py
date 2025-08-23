@@ -9,6 +9,14 @@ tasks = [
     {"id": 3, "title": "Read book", "done": True},
 ]
 
+def get_next_id():
+    if tasks:  # at least one task exists
+        max_id = max(task["id"] for task in tasks)
+    else:
+        max_id = 0
+    return max_id + 1
+
+
 @app.route("/tasks", methods=["GET"])
 def get_tasks():
     return jsonify(tasks)
@@ -48,7 +56,7 @@ def delete_task(id):
 def create_task():
     data = request.get_json() # read json body
     new_task = {
-        "id": len(tasks) + 1,
+        "id": get_next_id(),
         "title": data.get("title", "Untitled task"),
         "done": False
     }
