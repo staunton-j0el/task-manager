@@ -12,11 +12,45 @@
   <body>
     <h1>Page title</h1>
     <div class="main">
+        <form>
+            <label for="task">Task name:</label><br>
+            <input id="task" type="text">
+            <input id="submitBtn" type="submit">
+        </form>
         
     </div>
   <script>  
-  document.addEventListener("DOMContentLoaded", () => {
 
+
+  document.addEventListener("DOMContentLoaded", () => {
+    async function submitForm(e) {
+        e.preventDefault()
+        const url = "http://127.0.0.1:5000/tasks"
+        const taskVal = document.getElementById("task").value.trim();
+        if (taskVal) {
+            try {
+                const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({"title": taskVal, "done": false}),
+
+                })
+                if (!response.ok) {
+                    console.warn("error")
+                }
+                const result = await response.json()
+                document.getElementById("task").value = ""; //reset input value to allow consecutive adding
+
+                await getTasks()
+                
+            } catch(e) {
+                console.log(e)
+            }
+        }
+
+        return
+    }
+    document.querySelector("form").addEventListener("submit", submitForm);
     async function getTasks(api) {
         const url = "http://127.0.0.1:5000/tasks"
         try {
@@ -26,16 +60,28 @@
             }
             const result = await response.json()
             const htmlBody = document.querySelector(".main");
-             
-            const ul = document.createElement("ul")
-            htmlBody.appendChild(ul);
+            const taskList = document.getElementById("taskList")
+            if (taskList) {
+                ul = taskList
+                ul.innerHTML = ""  //reset list before updating
+                 result.forEach(task => {
+                    const li = document.createElement("li")
+                    li.textContent = task.title + ': ' + task.done;
+                    ul.appendChild(li)
+                })
 
-            result.forEach(task => {
-                
-                const li = document.createElement("li")
-                li.textContent = task.title;;
-                ul.appendChild(li)
-            })
+            } else {
+                const ul = document.createElement("ul");
+                ul.id = "taskList";
+                htmlBody.appendChild(ul);
+
+                result.forEach(task => {
+                    const li = document.createElement("li")
+                    li.textContent = task.title + ': ' + task.done;
+                    ul.appendChild(li)
+                })
+            }
+            
             
         } catch(e) {
             console.log(e)
