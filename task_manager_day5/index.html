@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hello!</title>
+    <meta name="description" content="description" />
+    <meta name="author" content="author" />
+    <meta name="keywords" content="keywords" />
+    <style type="text/css">
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            max-width: 720px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        h1 {
+            margin-bottom: 0.5rem;
+        }
+
+        .main {
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        form label {
+            font-weight: 600;
+        }
+
+        form input[type="text"] {
+            width: 100%;
+            max-width: 380px;
+            padding: 0.5rem;
+            margin: 0.25rem 0 0.75rem;
+        }
+
+        form input[type="submit"] {
+            padding: 0.5rem 0.9rem;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        #status {
+            margin-top: 0.75rem;
+            min-height: 1.2em;
+            font-size: 0.95rem;
+        }
+
+        #taskList {
+            margin-top: 1rem;
+        }
+
+        #taskList li {
+            padding: 0.25rem 0;
+        }
+
+        .ok {
+            color: #0a7b27;
+        }
+
+        .err {
+            color: #b30018;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.5.0/knockout-min.js"></script>
+
+</head>
+
+<body>
+    <h1>Knockout To-Do</h1>
+    <div class="main">
+        <form>
+            <input data-bind="value: newTask, valueUpdate: 'afterkeydown'" placeholder="New task"/>
+            <button data-bind="click: addTask">+</button>
+        </form>
+        <ul data-bind="foreach: tasks">
+            <li>
+                <span data-bind="text:title"></span>
+                <button data-bind="click: $parent.removeTask">x</button>
+            </li>
+
+        </ul>
+
+    </div>
+    <script>
+
+        // KO~
+        function AppViewModel() {
+            this.newTask = ko.observable("") 
+            this.tasks = ko.observableArray([
+                {id: 1, title: "Buy milk", done: false}
+            ]);
+
+            this.addTask = ()=> {
+                if (this.newTask().trim()) {
+                    this.tasks.push({id: Date.now(), title: this.newTask(), done: false})
+                    this.newTask("");
+                }
+            }
+            this.removeTask = (task) => {
+                this.tasks.remove(task)
+            }
+        }
+        ko.applyBindings(new AppViewModel())
+    
+
+    </script>
+</body>
+
+</html>
