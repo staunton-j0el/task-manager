@@ -2,113 +2,142 @@
 <html>
 
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hello!</title>
-    <meta name="description" content="description" />
-    <meta name="author" content="author" />
-    <meta name="keywords" content="keywords" />
-    <style type="text/css">
-        body {
-            font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-            max-width: 720px;
-            margin: 2rem auto;
-            padding: 0 1rem;
-        }
-
-        h1 {
-            margin-bottom: 0.5rem;
-        }
-
-        .main {
-            background: #fafafa;
-            border: 1px solid #eee;
-            border-radius: 10px;
-            padding: 1rem;
-        }
-
-        form label {
-            font-weight: 600;
-        }
-
-        form input[type="text"] {
-            width: 100%;
-            max-width: 380px;
-            padding: 0.5rem;
-            margin: 0.25rem 0 0.75rem;
-        }
-
-        form input[type="submit"] {
-            padding: 0.5rem 0.9rem;
-            border-radius: 8px;
-            border: 1px solid #ddd;
-            background: #fff;
-            cursor: pointer;
-        }
-
-        #status {
-            margin-top: 0.75rem;
-            min-height: 1.2em;
-            font-size: 0.95rem;
-        }
-
-        #taskList {
-            margin-top: 1rem;
-        }
-
-        #taskList li {
-            padding: 0.25rem 0;
-        }
-
-        .ok {
-            color: #0a7b27;
-        }
-
-        .err {
-            color: #b30018;
-        }
-    </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Task Manager — KO + Flask</title>
+<style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; max-width: 760px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { margin-bottom: .25rem; }
+    .muted { color:#666; font-size:.95rem; }
+    .card { background: #fafafa; border: 1px solid #eee; border-radius: 12px; padding: 1rem; margin-top: 1rem; }
+    input[type="text"], input[type="number"] { width: 100%; max-width: 420px; padding: .55rem; margin: .25rem 0 .75rem; }
+    button { padding: .5rem .9rem; border-radius: 8px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
+    ul { margin-top: 1rem; padding-left: 1.25rem; }
+    li { display: flex; align-items: center; gap: .5rem; padding: .25rem 0; }
+    .id { color:#888; font-variant-numeric: tabular-nums; }
+    .done { text-decoration: line-through; color:#888; }
+    #status { min-height: 1.2em; margin-top: .5rem; }
+    .ok { color:#0a7b27; } .err { color:#b30018; }
+</style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.5.0/knockout-min.js"></script>
 
 </head>
 
 <body>
     <h1>Knockout To-Do</h1>
-    <div class="main">
-        <form>
-            <input data-bind="value: newTask, valueUpdate: 'afterkeydown'" placeholder="New task"/>
-            <button data-bind="click: addTask">+</button>
-        </form>
+    <p class="muted">Knockout front‑end talking to Flask API.</p>
+    <div class="card">
+        <h3>Add / Delete</h3>
+        <input type="text" placeholder="New task title" data-bind="value: newTask, valueUpdate: 'afterkeydown'">
+        <button type="button" data-bind="click: addTask, enable: newTask().trim().length > 0">Add task</button><br>
+        <input type="number" data-bind="value: deleteId" min="1" placeholder="Task ID to delete">
+        <button type="button" data-bind="click: deleteTask, enable: deleteId()">Delete Task</button>
+
+        <div id="status" data-bind="css: statusClass, text: status"></div>
+    </div>
+    <div class="card">
+        <h3>Tasks</h3>
+        <button type="button" data-bind="click: loadTasks">Refresh</button>
         <ul data-bind="foreach: tasks">
             <li>
-                <span data-bind="text:title"></span>
-                <button data-bind="click: $parent.removeTask">x</button>
+                <span class="id">#<span data-bind="text:id"></span></span>
+                <span data-bind="text: title, css: {done: done}"></span>
+                <button type="button" data-bind="click: $parent.toggleDone">Toggle Done</button>
             </li>
 
         </ul>
-
     </div>
     <script>
+    (function() {
+        const API_BASE = 'http://127.0.0.1:5000';
 
-        // KO~
-        function AppViewModel() {
-            this.newTask = ko.observable("") 
-            this.tasks = ko.observableArray([
-                {id: 1, title: "Buy milk", done: false}
-            ]);
+        function AppVM() {
+            const self = this;
 
-            this.addTask = ()=> {
-                if (this.newTask().trim()) {
-                    this.tasks.push({id: Date.now(), title: this.newTask(), done: false})
-                    this.newTask("");
+            self.tasks = ko.observableArray([])
+            self.newTask = ko.observable("")
+            self.deleteId = ko.observable("")
+            self.status = ko.observable("")
+            self.statusClass = ko.observable("")
+
+            function setStatus(msg, ok=true){ self.status(msg); self.statusClass(ok? 'ok' : 'err'); }
+
+            self.loadTasks = async function() {
+                try {
+                    const res = await fetch(`${API_BASE}/tasks`, {headers: {'Accept' : 'application/json'}})
+                    if (!res.ok) throw new Error(`GET /tasks ${res.status}`);
+                    const data = await res.json()
+                    self.tasks(data);
+                    setStatus('Fetched tasks', true)
+
+                } catch(e) {
+                    console.error(e); setStatus('Could not fetch tasks', false)
+                }
+            };
+            self.addTask = async function() {
+                const title = (self.newTask() || '').trim();
+                if (!title) return;
+                try {
+                    const res = await fetch(`${API_BASE}/tasks`, {
+                        method: 'POST',
+                        headers: { 'Content-Type' : 'application/json', 'Accept': 'application/json' },
+                        body: JSON.stringify({title, done:false})
+                    })
+                    if (!res.ok) throw new Error(`POST /tasks ${res.status}`);
+                    await res.json()
+                    self.newTask("")
+                    setStatus('Task added', true)
+                    await self.loadTasks();
+                } catch (e) {
+                    console.warn(e); setStatus('Add task failed', false)
+                }
+            };
+            self.deleteTask = async function() {
+                const id = parseInt(self.deleteId(), 10);
+                if(Number.isNaN(id)) return setStatus("Delete ID must be a number.",  false);
+                try{
+                    const res = await fetch(`${API_BASE}/tasks/${id}`, {
+                        method: 'DELETE'
+                    })
+                    self.deleteId("")
+                    setStatus(`Task ${id} deleted`, true);
+                    await self.loadTasks();
+                } catch(e) {
+                    console.warn(e); setStatus("Delete failed", false);
+                }
+            };
+            self.toggleDone = async function(task) {
+                const newVal = !task.done // local flip for responsive ui
+                try {
+                    const res = await fetch(`${API_BASE}/tasks/${task.id}`, {
+                        method: "PUT",
+                        headers: {"Content-Type": 'application/json', 'Accept':'application/json'},
+                        body: JSON.stringify({done: newVal})
+                    });
+                    if(!res.ok) throw new Error(`PUT /tasks/${task.id} ${res.status}`)
+                    await self.loadTasks(); // reload from server to keep accurate result
+                    setStatus(`Toggled task ${task.id}, true`)
+                } catch(e) {
+                    console.warn(e); setStatus("Toggle failed", false)
                 }
             }
-            this.removeTask = (task) => {
-                this.tasks.remove(task)
+          
+        } // vm
+          // Boot after DOM is ready
+            function boot(){
+                const vm = new AppVM();
+                ko.applyBindings(vm, document.body);
+                vm.loadTasks();
             }
-        }
-        ko.applyBindings(new AppViewModel())
-    
-
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', boot);
+            } else {
+                boot();
+            }
+        
+    })
+    ();//run
+   
     </script>
 </body>
 
