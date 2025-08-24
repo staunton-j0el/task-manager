@@ -1,124 +1,171 @@
 <!DOCTYPE html>
 <html>
-  <head>
+
+<head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hello!</title>
-    <meta name="description" content="description"/>
+    <meta name="description" content="description" />
     <meta name="author" content="author" />
     <meta name="keywords" content="keywords" />
-    <link rel="stylesheet" href="./stylesheet.css" type="text/css" />
-    <style type="text/css">.body { width: auto; }</style>
-  </head>
-  <body>
+    <style type="text/css">
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            max-width: 720px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        h1 {
+            margin-bottom: 0.5rem;
+        }
+
+        .main {
+            background: #fafafa;
+            border: 1px solid #eee;
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        form label {
+            font-weight: 600;
+        }
+
+        form input[type="text"] {
+            width: 100%;
+            max-width: 380px;
+            padding: 0.5rem;
+            margin: 0.25rem 0 0.75rem;
+        }
+
+        form input[type="submit"] {
+            padding: 0.5rem 0.9rem;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        #status {
+            margin-top: 0.75rem;
+            min-height: 1.2em;
+            font-size: 0.95rem;
+        }
+
+        #taskList {
+            margin-top: 1rem;
+        }
+
+        #taskList li {
+            padding: 0.25rem 0;
+        }
+
+        .ok {
+            color: #0a7b27;
+        }
+
+        .err {
+            color: #b30018;
+        }
+    </style>
+</head>
+
+<body>
     <h1>Page title</h1>
     <div class="main">
         <form>
             <label for="addTask">Add task</label><br>
             <input id="addTask" type="text"><br>
-   
+
             <label for="deleteTask">Delete task (ID):</label><br>
             <input id="deleteTask" type="text"><br><br>
             <input id="submitBtn" type="submit">
         </form>
-        
+
     </div>
-  <script>  
+    <script>
 
 
-  document.addEventListener("DOMContentLoaded", () => {
+        document.addEventListener("DOMContentLoaded", () => {
+            async function submitForm(e) {
+                e.preventDefault()
+                const url = "http://127.0.0.1:5000/tasks/"
+                const addTask = document.getElementById("addTask")
+                const deleteTask = document.getElementById("deleteTask")
+                let addTaskVal = addTask.value.trim();
+                let deleteTaskVal = deleteTask.value.trim();
+                try {
+                    if (addTaskVal) {
+                        const response = await fetch(url, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ "title": addTaskVal, "done": false }),
 
-
-    async function submitForm(e) {
-        e.preventDefault()
-        const url = "http://127.0.0.1:5000/tasks"       
-
-        const addTask = document.getElementById("addTask")
-        let addTaskVal = addTask.value.trim();
-        if (addTaskVal) {
-            try {
-                const response = await fetch(url, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({"title": addTaskVal, "done": false}),
-
-                })
-                if (!response.ok) {
-                    console.warn("error")
-                }
-                const result = await response.json()
-                addTask.value = ""; //reset input value to allow consecutive adding
-                await getTasks()
-                
-            } catch(e) {
-                console.log(e)
-            }
-        }
-        const deleteTask = document.getElementById("deleteTask")
-        let deleteTaskVal = deleteTask.value.trim();
-
-        if (deleteTaskVal) {
-            const id = parseInt(deleteTaskVal, 10);
-            if (Number.isNaN(id)) return console.warn("Invalid id");
-
-            try {
-                const reponse =  await fetch(`http://127.0.0.1:5000/tasks/${id}`, {
-                    method: "DELETE",
-                });
-                 if (!reponse.ok) {
-                    // 404 from backend when id not found
-                    console.warn("Delete failed:", res.status);
-                        return;
+                        })
+                        if (!response.ok) {
+                            return console.warn("Delete failed:", response.status);
+                        }
+                        const result = await response.json()
+                        addTask.value = ""; //reset input value to allow consecutive adding
                     }
-                deleteTask.value = ""
-                await getTasks() // refresh
-            } catch(e) {
-                console.warn(e)
+                    if (deleteTaskVal) {
+                        const id = parseInt(deleteTaskVal, 10);
+                        if (Number.isNaN(id)) return console.warn("Invalid id");
+                        const response = await fetch(`${url}${id}`, {
+                            method: "DELETE",
+                        });
+                        if (!response.ok) {
+                            // 404 from backend when id not found
+                            return console.warn("Delete failed:", response.status);
+                        }
+                        deleteTask.value = ""
+                    }
+                } catch (e) {
+                    return console.warn("Delete failed:", response.status);
+                }
+
+                await getTasks()
+                return
             }
-        }
+            document.querySelector("form").addEventListener("submit", submitForm);
+            async function getTasks(api) {
+                const url = "http://127.0.0.1:5000/tasks"
+                try {
+                    const response = await fetch(url)
+                    if (!response.ok) {
+                        console.warn("error")
+                    }
+                    const result = await response.json()
+                    const htmlBody = document.querySelector(".main");
+                    const taskList = document.getElementById("taskList")
+                    if (taskList) {
+                        ul = taskList
+                        ul.innerHTML = ""  //reset list before updating
+                        result.forEach(task => {
+                            const li = document.createElement("li")
+                            li.textContent = "Task ID: " + task.id + " " + task.title + ': ' + task.done;
+                            ul.appendChild(li)
+                        })
 
-        return
-    }
-    document.querySelector("form").addEventListener("submit", submitForm);
-    async function getTasks(api) {
-        const url = "http://127.0.0.1:5000/tasks"
-        try {
-            const response = await fetch(url)
-            if (!response.ok) {
-                console.warn("error")
+                    } else {
+                        const ul = document.createElement("ul");
+                        ul.id = "taskList";
+                        htmlBody.appendChild(ul);
+
+                        result.forEach(task => {
+                            const li = document.createElement("li")
+                            li.textContent = "Task ID: " + task.id + " " + task.title + ': ' + task.done;
+                            ul.appendChild(li)
+                        })
+                    }
+
+                } catch (e) {
+                    console.log(e)
+                }
             }
-            const result = await response.json()
-            const htmlBody = document.querySelector(".main");
-            const taskList = document.getElementById("taskList")
-            if (taskList) {
-                ul = taskList
-                ul.innerHTML = ""  //reset list before updating
-                 result.forEach(task => {
-                    const li = document.createElement("li")
-                    li.textContent = "Task ID: " + task.id + " " + task.title + ': ' + task.done;
-                    ul.appendChild(li)
-                })
+            getTasks()
+        });
 
-            } else {
-                const ul = document.createElement("ul");
-                ul.id = "taskList";
-                htmlBody.appendChild(ul);
+    </script>
+</body>
 
-                result.forEach(task => {
-                    const li = document.createElement("li")
-                    li.textContent = "Task ID: " + task.id + " " + task.title + ': ' + task.done;
-                    ul.appendChild(li)
-                })
-            }
-            
-            
-        } catch(e) {
-            console.log(e)
-        }
-    }
-    getTasks()
-
-});
-
-  </script>
-  </body>
 </html>
